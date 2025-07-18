@@ -1,0 +1,60 @@
+#SQL SCRIPTS FOR DATA CLEANING
+
+##Let’s filter out invalid or weird trips:
+
+SELECT
+  payment_type,
+  trip_distance,
+  TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, MINUTE) AS trip_duration_min,
+  EXTRACT(DAYOFWEEK FROM pickup_datetime) AS day_of_week,
+  passenger_count,
+  fare_amount
+FROM
+  `bigquery-public-data.new_york_taxi_trips.tlc_green_trips_2022`
+WHERE
+  trip_distance > 0
+  AND fare_amount > 0
+  AND TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, MINUTE) BETWEEN 1 AND 240
+
+
+##Find out: Do card users take longer or shorter rides?  [LONGER]
+SELECT
+  payment_type,
+  COUNT(*) AS total_trips,
+  AVG(trip_distance) AS avg_distance,
+  AVG(TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, MINUTE)) AS avg_duration_min
+FROM
+  `bigquery-public-data.new_york_taxi_trips.tlc_green_trips_2022`
+WHERE
+  trip_distance > 0
+  AND fare_amount > 0
+  AND TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, MINUTE) BETWEEN 1 AND 240
+GROUP BY payment_type
+ORDER BY total_trips DESC;
+
+
+##Do cash users ride more on weekends?    [NO]
+SELECT
+  payment_type,
+  EXTRACT(DAYOFWEEK FROM pickup_datetime) AS day_of_week,
+  COUNT(*) AS ride_count
+FROM
+  `bigquery-public-data.new_york_taxi_trips.tlc_green_trips_2022`
+WHERE
+  trip_distance > 0
+  AND fare_amount > 0
+  AND TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, MINUTE) BETWEEN 1 AND 240
+GROUP BY payment_type, day_of_week
+ORDER BY payment_type, day_of_week;
+
+
+
+##Average Fare by Payment Type      [CASH AND CARD HAS ALOMOST EQUAL]
+SELECT
+  payment_type,
+  ROUND(AVG(fare_amount), 2) AS avg_fare
+FROM
+  `bigquery-public-data.new_york_taxi_trips.tlc_green_trips_2022`
+WHERE
+  fare_amount > 0
+GROUP BY payment_type;
